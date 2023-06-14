@@ -1,37 +1,35 @@
 import React from 'react';
 import Cart from './Cart';
 import Navbar from './Navbar';
-
+import * as firebase from 'firebase/app';
+import { db } from './index';
+import { collection, getDocs } from 'firebase/firestore';
 class App extends React.Component {
   constructor () {
     super();
     this.state = {
-      products: [
-        {
-          price: 99,
-          title: 'Watch',
-          qty: 1,
-          img: '',
-          id: 1
-        },
-        {
-          price: 999,
-          title: 'Mobile Phone',
-          qty: 10,
-          img: '',
-          id: 2
-        },
-        {
-          price: 999,
-          title: 'Laptop',
-          qty: 4,
-          img: '',
-          id: 3
-        }
-      ]
+      products: [],
+      loading: true
     }
     // this.increaseQuantity = this.increaseQuantity.bind(this);
     // this.testing();
+  }
+
+  //utilise component life cycle methods for retriving the data from firebase
+  componentDidMount() {
+    // let { products } = this.state;
+    getDocs(collection(db, "products"))
+    .then(
+      (querySnapshot) => {
+        const newData = querySnapshot.docs.map((doc) => ({...doc.data(), id:doc.id }));
+        console.log(newData);
+        this.setState({
+          // products: products // below line is same as this line
+          products: newData,
+          loading: false
+        })
+      }
+    )
   }
 
   handleIncreaseQty = (product)=> {    
@@ -93,10 +91,8 @@ class App extends React.Component {
       return price;
   }
 
-
-
   render(){
-    const {products} = this.state;
+    const {products, loading} = this.state;
     return (
       <div className="App">
         <Navbar 
@@ -108,6 +104,7 @@ class App extends React.Component {
           onDecreaseQuantity = {this.handleDescreaseQty}
           onDelete = {this.handleDelete}
         />
+        <div>{loading && <h1>Loading....</h1>}</div>
         <div style={{padding: 10, fontSize: 20 }}>TOTAL: {this.getCartTotal()} </div>
       </div>
     );  
