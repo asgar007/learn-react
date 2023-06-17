@@ -1,76 +1,105 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Cart from './Cart';
 import Navbar from './Navbar';
 import * as firebase from 'firebase/app';
 import { db } from './index';
-import { collection, getDocs } from 'firebase/firestore';
-class App extends React.Component {
-  constructor () {
-    super();
-    this.state = {
-      products: [],
-      loading: true
-    }
-    // this.increaseQuantity = this.increaseQuantity.bind(this);
-    // this.testing();
-  }
+import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, query, updateDoc } from 'firebase/firestore';
+
+function App (props) {
+  // constructor () {
+  //   super();
+  //   this.state = {
+  //     products: [],
+  //     loading: true
+  //   }
+  // }
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   //utilise component life cycle methods for retriving the data from firebase
-  componentDidMount() {
-    // let { products } = this.state;
-    getDocs(collection(db, "products"))
-    .then(
-      (querySnapshot) => {
-        const newData = querySnapshot.docs.map((doc) => ({...doc.data(), id:doc.id }));
-        console.log(newData);
-        this.setState({
-          // products: products // below line is same as this line
-          products: newData,
-          loading: false
-        })
-      }
-    )
+  // componentDidMount() {
+    
+  //   getDocs(collection(db, "products"))
+  //   .then(
+  //     (querySnapshot) => {
+  //       const newData = querySnapshot.docs.map((doc) => ({...doc.data(), id:doc.id }));
+  //       console.log(newData);
+  //       this.setState({
+  //         // products: products // below line is same as this line
+  //         products: newData,
+  //         loading: false
+  //       })
+  //     }
+  //   )
+
+  // }
+/* function to get all tasks from firestore in realtime */ 
+useEffect(() => {
+  const q = query(collection(db, "products"));
+  const unsubscribe = onSnapshot(q, (querySnapshot) => {
+  const newData = querySnapshot.docs.map((doc) => ({...doc.data(), id:doc.id }));
+  setProducts(newData);
+  setLoading(false)
+});
+},[])
+
+/* function to update document in firestore */
+// const handleCheckedChange = async () => {
+//   const taskDocRef = doc(db, 'products')
+//   try{
+//     await updateDoc(taskDocRef, {
+//       products
+//     })
+//   } catch (err) {
+//     alert(err)
+//   }
+// }
+
+
+
+  const handleIncreaseQty = async (product)=> {
+    // const items = [...products];
+    // const index = items.indexOf(product);
+    // items[index].qty += 1;
+    product.qty += 1
+    
+    const frankDocRef = doc(db, "products", product.id);
+    await updateDoc(frankDocRef, product);
+
+    // setProducts(products)
+    // console.log(items[index].qty);
+    // setProducts(items)
   }
 
-  handleIncreaseQty = (product)=> {    
-    const { products } = this.state;
-    const index = products.indexOf(product);
-    products[index].qty += 1;
-
-    this.setState({
-      // products: products // below line is same as this line
-      products
-    })
+  const handleDescreaseQty = async (product)=> {
+    // const index = products.indexOf(product);
+    // if(products[index].qty === 0){
+    //   return;
+    // }
+    // products[index].qty -= 1;
+    // setProducts(products)
+    product.qty -= 1
+    const frankDocRef = doc(db, "products", product.id);
+    await updateDoc(frankDocRef, product);
   }
 
-  handleDescreaseQty = (product)=> {
-    
-    console.log(product);
-    
-    const { products } = this.state;
-    const index = products.indexOf(product);
-    if(products[index].qty === 0){
-      return;
+  // const handleDelete = (id)=> {
+  //   const items = products.filter((item)=> item.id !== id);
+
+  //   setProducts(items)
+  // }
+
+  /* function to delete a document from firstore */ 
+  const handleDelete = async (id) => {
+    const taskDocRef = doc(db, 'products', id)
+    try{
+      await deleteDoc(taskDocRef)
+    } catch (err) {
+      alert(err)
     }
-    products[index].qty -= 1;
-
-    this.setState({
-      // products: products // below line is same as this line
-      products
-    })
   }
 
-  handleDelete = (id)=> {
-    const { products } = this.state;
-    const items = products.filter((item)=> item.id !== id);
-
-    this.setState({
-      products: items
-    })
-  }
-
-  getCartCount  = ()=> {
-    const { products } = this.state;
+  const getCartCount  = ()=> {
     let count = 0;
     products.forEach(
       (product) => {
@@ -80,8 +109,7 @@ class App extends React.Component {
       return count;
   }
 
-  getCartTotal = ()=> {
-    const { products } = this.state;
+  const getCartTotal = ()=> {
     let price = 0;
     products.forEach(
       (product) => {
@@ -91,24 +119,51 @@ class App extends React.Component {
       return price;
   }
 
-  render(){
-    const {products, loading} = this.state;
+  const addProduct = async (e) => {
+    e.preventDefault();
+    try {
+      await addDoc(collection(db, 'products'), {
+        title: 'title',
+        price: 1,
+        qty: 1,
+        img: ''
+      })
+      
+    } catch (err) {
+      alert(err)
+    }
+  }
+  /* function to update document in firestore */
+// const handleUpdate = async (e) => {
+//   e.preventDefault()
+//   const taskDocRef = doc(db, 'products')
+//   try{
+//     await updateDoc(taskDocRef, {
+//       title: title,
+//       description: description
+//     })
+//     onclose()
+//   } catch (err) {
+//     alert(err)
+//   }    
+// }
+
     return (
       <div className="App">
         <Navbar 
-          count = {this.getCartCount()}
+          count = {getCartCount()}
         />
+        <button onClick={addProduct}>Add a Product</button>
         <Cart 
           products={products} 
-          onIncreaseQuantity = {this.handleIncreaseQty} 
-          onDecreaseQuantity = {this.handleDescreaseQty}
-          onDelete = {this.handleDelete}
+          onIncreaseQuantity = {handleIncreaseQty} 
+          onDecreaseQuantity = {handleDescreaseQty}
+          onDelete = {handleDelete}
         />
         <div>{loading && <h1>Loading....</h1>}</div>
-        <div style={{padding: 10, fontSize: 20 }}>TOTAL: {this.getCartTotal()} </div>
+        <div style={{padding: 10, fontSize: 20 }}>TOTAL: {getCartTotal()} </div>
       </div>
     );  
-  }
 }
 
 export default App;
